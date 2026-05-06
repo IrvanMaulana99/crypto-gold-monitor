@@ -2,7 +2,15 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/**/*.js",
+      "src": "api/prices.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/history.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/analysis.js",
       "use": "@vercel/node"
     },
     {
@@ -11,7 +19,9 @@
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/api/prices", "dest": "/api/prices.js" },
+    { "src": "/api/history", "dest": "/api/history.js" },
+    { "src": "/api/analysis", "dest": "/api/analysis.js" },
     { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }
