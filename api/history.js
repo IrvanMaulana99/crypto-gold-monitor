@@ -1,8 +1,8 @@
-const { getBitcoinHistory, getGoldHistory } = require('../lib/datasources');
+const { getBitcoinHistory, getGoldHistory, getPegadaianHistory } = require('../lib/datasources');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=120');
+  res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
 
   const asset = req.query.asset || 'bitcoin';
   const days = Math.min(parseInt(req.query.days) || 30, 365);
@@ -11,6 +11,8 @@ module.exports = async function handler(req, res) {
     let data;
     if (asset === 'gold') {
       data = await getGoldHistory(days);
+    } else if (asset === 'pegadaian') {
+      data = await getPegadaianHistory(days);
     } else {
       data = await getBitcoinHistory(days);
     }

@@ -1,324 +1,311 @@
-/* ─── CryptoGold Monitor — Frontend App ─── */
+/* ─── CryptoGold Monitor — App ─── */
 
-const API_BASE = '';
-let btcChart = null;
-let goldChart = null;
-let refreshInterval = null;
-let countdown = 60;
+const API_BASE = window.location.origin;
+const REFRESH_INTERVAL = 30; // seconds
 
-// ─── Utilities ───
-
-function fmt(n, dec = 0) {
-  if (n == null) return '—';
-  return new Intl.NumberFormat('id-ID', { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(n);
-}
-function fmtUsd(n, dec = 2) {
-  if (n == null) return '$—';
-  return '$' + new Intl.NumberFormat('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(n);
-}
-function fmtIdr(n) {
-  if (n == null) return 'Rp —';
-  return 'Rp ' + new Intl.NumberFormat('id-ID').format(n);
-}
-function fmtCompact(n) {
+// ─── Formatters ───
+const fmt = (n, dec = 0) => n != null ? n.toLocaleString('id-ID', { maximumFractionDigits: dec }) : '—';
+const fmtUsd = (n) => n != null ? '$' + n.toLocaleString('en-US', { maximumFractionDigits: n >= 100 ? 0 : 2 }) : '$—';
+const fmtIdr = (n) => n != null ? 'Rp ' + n.toLocaleString('id-ID') : 'Rp —';
+const fmtCompact = (n) => {
   if (n == null) return '—';
   if (n >= 1e12) return '$' + (n / 1e12).toFixed(2) + 'T';
   if (n >= 1e9) return '$' + (n / 1e9).toFixed(2) + 'B';
-  if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
-  return fmtUsd(n, 0);
-}
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+  return '$' + fmt(n);
+};
 
-function $(id) { return document.getElementById(id); }
+// ─── State ───
+let btcChart = null, goldChart = null, pegChart = null;
+let btcDays = 7, goldDays = 7, pegDays = 7;
+let countdown = REFRESH_INTERVAL;
+let timerInterval = null;
 
-// ─── Price Cards ───
-
+// ─── Price Loading ───
 async function loadPrices() {
   try {
-    const res = await fetch(API_BASE + '/api/prices');
+    const res = await fetch(`${API_BASE}/api/prices`);
     const json = await res.json();
-    if (!json.success) throw new Error(json.error);
-    const { bitcoin, gold } = json.data;
-    updateBtcCard(bitcoin);
-    updateGoldCard(gold);
-  } catch (err) {
-    console.error('Price fetch error:', err);
+    if (!json.success) return;
+    updateBtcCard(json.data.bitcoin);
+    updateGoldCard(json.data.goldGlobal);
+    updatePegCard(json.data.pegadaian);
+  } catch (e) {
+    console.error('Price fetch error:', e);
   }
 }
 
-function updateBtcCard(btc) {
-  $('btcPriceUsd').textContent = fmtUsd(btc.priceUsd, 0);
-  $('btcPriceIdr').textContent = fmtIdr(btc.priceIdr);
-  const ch = btc.change24h;
-  const badge = $('btcChange');
+function updateBtcCard(d) {
+  if (!d) return;
+  document.getElementById('btcPriceUsd').textContent = fmtUsd(d.priceUsd);
+  document.getElementById('btcPriceIdr').textContent = fmtIdr(d.priceIdr);
+  document.getElementById('btcVolume').textContent = fmtCompact(d.volume24hUsd);
+  document.getElementById('btcMcap').textContent = fmtCompact(d.marketCapUsd);
+  const badge = document.getElementById('btcChange');
+  const ch = d.change24h;
   badge.textContent = (ch >= 0 ? '+' : '') + ch.toFixed(2) + '%';
-  badge.className = 'change-badge ' + (ch >= 0 ? 'change-positive' : 'change-negative');
-  $('btcVolume').textContent = fmtCompact(btc.volume24hUsd);
-  $('btcMcap').textContent = fmtCompact(btc.marketCapUsd);
+  badge.className = 'change-badge ' + (ch >= 0 ? 'change-up' : 'change-down');
 }
 
-function updateGoldCard(gold) {
-  $('goldPriceUsd').textContent = fmtUsd(gold.pricePerOzUsd, 2) + ' /oz';
-  $('goldPriceIdr').textContent = fmtIdr(gold.pricePerGramIdr) + ' /gram';
-  const ch = gold.change24h;
-  const badge = $('goldChange');
+function updateGoldCard(d) {
+  if (!d) return;
+  document.getElementById('goldPriceUsd').textContent = fmtUsd(d.pricePerOzUsd) + ' /oz';
+  document.getElementById('goldPriceIdr').textContent = fmtIdr(d.pricePerGramIdr) + ' /gram';
+  const badge = document.getElementById('goldChange');
+  const ch = d.change24h;
   badge.textContent = (ch >= 0 ? '+' : '') + ch.toFixed(2) + '%';
-  badge.className = 'change-badge ' + (ch >= 0 ? 'change-positive' : 'change-negative');
-  if (gold.pegadaian) {
-    $('pegBuy').textContent = fmtIdr(gold.pegadaian.buyEstimatePerGram);
-    $('pegSell').textContent = fmtIdr(gold.pegadaian.sellEstimatePerGram);
-    $('pegNote').textContent = gold.pegadaian.note;
-  }
+  badge.className = 'change-badge ' + (ch >= 0 ? 'change-up' : 'change-down');
+}
+
+function updatePegCard(d) {
+  if (!d) return;
+  document.getElementById('pegBuy').textContent = fmtIdr(d.buyPricePerGram);
+  document.getElementById('pegSell').textContent = fmtIdr(d.sellPricePerGram);
+  document.getElementById('pegBuy001').textContent = fmtIdr(d.buyPricePer001Gram);
+  document.getElementById('pegSell001').textContent = fmtIdr(d.sellPricePer001Gram);
+  const badge = document.getElementById('pegChange');
+  const ch = d.changePct;
+  badge.textContent = (ch >= 0 ? '+' : '') + ch.toFixed(2) + '%';
+  badge.className = 'change-badge ' + (ch >= 0 ? 'change-up' : 'change-down');
 }
 
 // ─── Charts ───
-
-const chartDefaults = {
-  responsive: true,
-  maintainAspectRatio: false,
-  interaction: { mode: 'index', intersect: false },
-  plugins: {
-    legend: { display: false },
-    tooltip: {
-      backgroundColor: '#1c2640',
-      titleColor: '#e2e8f0',
-      bodyColor: '#94a3b8',
-      borderColor: '#2d3a50',
-      borderWidth: 1,
-      padding: 12,
-      displayColors: false,
-      callbacks: {
-        label: function(ctx) {
-          return fmtUsd(ctx.parsed.y, 2);
-        }
-      }
-    }
-  },
-  scales: {
-    x: {
-      type: 'time',
-      grid: { color: 'rgba(30,41,59,.5)', drawBorder: false },
-      ticks: { color: '#64748b', font: { size: 11 }, maxTicksLimit: 8 },
-    },
-    y: {
-      grid: { color: 'rgba(30,41,59,.5)', drawBorder: false },
-      ticks: {
-        color: '#64748b',
-        font: { size: 11 },
-        callback: (v) => {
-          if (v >= 1000) return '$' + (v / 1000).toFixed(v >= 10000 ? 0 : 1) + 'k';
-          return '$' + v.toFixed(0);
-        }
-      },
-    }
-  }
-};
-
-function createGradient(ctx, color1, color2) {
-  const g = ctx.createLinearGradient(0, 0, 0, 280);
-  g.addColorStop(0, color1);
-  g.addColorStop(1, color2);
+function chartGradient(ctx, color) {
+  const g = ctx.createLinearGradient(0, 0, 0, 260);
+  g.addColorStop(0, color + '40');
+  g.addColorStop(1, color + '00');
   return g;
 }
 
-async function loadChart(asset, days) {
+function createChart(canvasId, data, color, yPrefix, yPostfix) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return null;
+  const context = ctx.getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(p => new Date(p.timestamp)),
+      datasets: [{
+        data: data.map(p => p.price),
+        borderColor: color,
+        backgroundColor: chartGradient(context, color),
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        mode: 'index', intersect: false,
+        callbacks: {
+          label: (ctx) => (yPrefix || '') + fmt(ctx.raw, 2) + (yPostfix || ''),
+        },
+      }},
+      scales: {
+        x: { type: 'time', grid: { display: false }, ticks: { color: '#64748b', font: { size: 11 } } },
+        y: {
+          grid: { color: '#1e293b' },
+          ticks: {
+            color: '#64748b', font: { size: 11 },
+            callback: (v) => (yPrefix || '') + fmtChartTick(v) + (yPostfix || ''),
+          },
+        },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    },
+  });
+}
+
+function fmtChartTick(v) {
+  if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return (v / 1e3).toFixed(v >= 1e4 ? 0 : 1) + 'k';
+  return v.toFixed(v >= 100 ? 0 : 2);
+}
+
+async function renderChart(chartRef, canvasId, asset, days, color, yPrefix, yPostfix) {
   try {
     const res = await fetch(`${API_BASE}/api/history?asset=${asset}&days=${days}`);
     const json = await res.json();
-    if (!json.success) throw new Error(json.error);
-
-    const data = json.data.prices.map(p => ({ x: new Date(p.timestamp), y: p.price }));
-    if (asset === 'bitcoin') {
-      renderBtcChart(data);
-    } else {
-      renderGoldChart(data);
-    }
-  } catch (err) {
-    console.error(`Chart ${asset} error:`, err);
+    if (!json.success || !json.data.prices.length) return chartRef;
+    if (chartRef) chartRef.destroy();
+    return createChart(canvasId, json.data.prices, color, yPrefix, yPostfix);
+  } catch (e) {
+    console.error(`Chart error (${asset}):`, e);
+    return chartRef;
   }
 }
 
-function renderBtcChart(data) {
-  const canvas = $('btcChart');
-  const ctx = canvas.getContext('2d');
-  if (btcChart) btcChart.destroy();
-  btcChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      datasets: [{
-        data,
-        borderColor: '#f7931a',
-        borderWidth: 2,
-        backgroundColor: createGradient(ctx, 'rgba(247,147,26,.15)', 'rgba(247,147,26,.0)'),
-        fill: true,
-        tension: 0.3,
-        pointRadius: 0,
-        pointHoverRadius: 5,
-        pointHoverBackgroundColor: '#f7931a',
-      }]
-    },
-    options: { ...chartDefaults }
-  });
+async function renderAllCharts() {
+  [btcChart, goldChart, pegChart] = await Promise.all([
+    renderChart(btcChart, 'btcChart', 'bitcoin', btcDays, '#f7931a', '$'),
+    renderChart(goldChart, 'goldChart', 'gold', goldDays, '#fbbf24', '$'),
+    renderChart(pegChart, 'pegChart', 'pegadaian', pegDays, '#38bdf8', 'Rp '),
+  ]);
 }
 
-function renderGoldChart(data) {
-  const canvas = $('goldChart');
-  const ctx = canvas.getContext('2d');
-  if (goldChart) goldChart.destroy();
-  goldChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      datasets: [{
-        data,
-        borderColor: '#fbbf24',
-        borderWidth: 2,
-        backgroundColor: createGradient(ctx, 'rgba(251,191,36,.15)', 'rgba(251,191,36,.0)'),
-        fill: true,
-        tension: 0.3,
-        pointRadius: 0,
-        pointHoverRadius: 5,
-        pointHoverBackgroundColor: '#fbbf24',
-      }]
-    },
-    options: { ...chartDefaults }
+// ─── Timeframe buttons ───
+document.querySelectorAll('.timeframe-btns').forEach(group => {
+  group.querySelectorAll('.tf-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      group.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const days = parseInt(btn.dataset.days);
+      const chart = group.dataset.chart;
+      if (chart === 'btc') { btcDays = days; btcChart = await renderChart(btcChart, 'btcChart', 'bitcoin', days, '#f7931a', '$'); }
+      else if (chart === 'gold') { goldDays = days; goldChart = await renderChart(goldChart, 'goldChart', 'gold', days, '#fbbf24', '$'); }
+      else if (chart === 'peg') { pegDays = days; pegChart = await renderChart(pegChart, 'pegChart', 'pegadaian', days, '#38bdf8', 'Rp '); }
+    });
   });
-}
+});
 
 // ─── Analysis ───
-
-async function loadAnalysis() {
+async function renderAnalysis() {
   try {
-    const res = await fetch(API_BASE + '/api/analysis');
+    const res = await fetch(`${API_BASE}/api/analysis`);
     const json = await res.json();
-    if (!json.success) throw new Error(json.error);
-    const { bitcoin, gold } = json.data;
-    renderAnalysis('btc', bitcoin);
-    renderAnalysis('gold', gold);
-  } catch (err) {
-    console.error('Analysis error:', err);
+    if (!json.success) return;
+    const d = json.data;
+
+    renderAssetAnalysis('btc', d.bitcoin);
+    renderAssetAnalysis('gold', d.goldGlobal);
+    if (d.pegadaian) {
+      renderAssetAnalysis('peg', d.pegadaian);
+    }
+  } catch (e) {
+    console.error('Analysis error:', e);
   }
 }
 
-function getRecColor(score) {
+function renderAssetAnalysis(prefix, data) {
+  if (!data || !data.analysis) return;
+  const { analysis, price } = data;
+
+  // Price display
+  const priceEl = document.getElementById(`analysis${cap(prefix)}Price`);
+  if (priceEl) {
+    if (prefix === 'btc') priceEl.textContent = fmtUsd(price.priceUsd);
+    else if (prefix === 'gold') priceEl.textContent = fmtUsd(price.pricePerOzUsd) + ' /oz';
+    else if (prefix === 'peg') priceEl.textContent = fmtIdr(price.buyPricePerGram) + ' /gram';
+  }
+
+  // Trend
+  const trendEl = document.getElementById(`analysis${cap(prefix)}Trend`);
+  if (trendEl && analysis.trend) trendEl.textContent = 'Tren: ' + analysis.trend;
+
+  // Score ring
+  const score = analysis.score;
+  const ring = document.getElementById(`${prefix}ScoreRing`);
+  if (ring) {
+    const circumference = 2 * Math.PI * 52;
+    ring.style.strokeDasharray = circumference;
+    ring.style.strokeDashoffset = circumference - (circumference * score / 100);
+    ring.style.stroke = scoreColor(score);
+  }
+  const scoreEl = document.getElementById(`${prefix}Score`);
+  if (scoreEl) scoreEl.textContent = score;
+
+  // Recommendation
+  const stateClass = getStateClass(analysis.recommendation);
+  const recLabel = document.getElementById(`${prefix}RecLabel`);
+  const recMsg = document.getElementById(`${prefix}RecMessage`);
+  if (recLabel) {
+    recLabel.textContent = recLabelText(analysis.recommendation);
+    recLabel.closest('.recommendation-box')?.parentElement?.classList.remove('strong-buy-state', 'buy-state', 'hold-state', 'wait-state', 'strong-wait-state');
+    recLabel.closest('.recommendation-box')?.parentElement?.classList.add(stateClass);
+  }
+  if (recMsg) recMsg.textContent = analysis.message;
+
+  // Indicators
+  const container = document.getElementById(`${prefix}Indicators`);
+  if (!container) return;
+  container.innerHTML = '';
+  for (const ind of analysis.indicators) {
+    const signalClass = getSignalClass(ind.signal);
+    const weightPct = (ind.weight * 100).toFixed(0);
+    const row = document.createElement('div');
+    row.className = 'indicator-wrapper';
+    row.innerHTML = `
+      <div class="indicator-row">
+        <span class="indicator-name">${ind.name}</span>
+        <span class="indicator-value">${ind.value}</span>
+        <span class="indicator-signal ${signalClass}">${ind.signal}</span>
+      </div>
+      <div class="indicator-detail">${ind.detail} <span style="opacity:.5">(bobot: ${weightPct}%)</span></div>
+    `;
+    container.appendChild(row);
+  }
+}
+
+function cap(s) {
+  if (s === 'btc') return 'Btc';
+  if (s === 'gold') return 'Gold';
+  if (s === 'peg') return 'Peg';
+  return s;
+}
+
+function scoreColor(score) {
   if (score >= 80) return '#22c55e';
   if (score >= 65) return '#4ade80';
-  if (score >= 50) return '#3b82f6';
-  if (score >= 35) return '#fbbf24';
+  if (score >= 50) return '#fbbf24';
+  if (score >= 35) return '#fb923c';
   return '#ef4444';
 }
 
-function getRecClass(score) {
-  if (score >= 80) return 'score-strong-buy';
-  if (score >= 65) return 'score-buy';
-  if (score >= 50) return 'score-hold';
-  if (score >= 35) return 'score-wait';
-  return 'score-strong-wait';
+function getStateClass(rec) {
+  const map = { STRONG_BUY: 'strong-buy-state', BUY: 'buy-state', HOLD: 'hold-state', WAIT: 'wait-state', STRONG_WAIT: 'strong-wait-state' };
+  return map[rec] || 'hold-state';
 }
 
-function getRecText(rec) {
+function recLabelText(rec) {
   const map = {
-    'STRONG_BUY': 'STRONG BUY',
-    'BUY': 'BUY',
-    'HOLD': 'HOLD / DCA',
-    'WAIT': 'WAIT',
-    'STRONG_WAIT': 'JANGAN BELI',
-    'INSUFFICIENT_DATA': 'DATA KURANG',
+    STRONG_BUY: 'SANGAT LAYAK BELI',
+    BUY: 'LAYAK BELI',
+    HOLD: 'HOLD / DCA',
+    WAIT: 'TUNGGU',
+    STRONG_WAIT: 'JANGAN BELI',
   };
   return map[rec] || rec;
 }
 
 function getSignalClass(signal) {
   const s = signal.toLowerCase().replace(/\s+/g, '-');
-  return 'signal-' + s;
+  const map = {
+    'strong-buy': 'sig-strong-buy',
+    'buy': 'sig-buy',
+    'lean-buy': 'sig-lean-buy',
+    'hold': 'sig-hold',
+    'netral': 'sig-netral',
+    'lean-wait': 'sig-lean-wait',
+    'wait': 'sig-wait',
+    'strong-wait': 'sig-strong-wait',
+  };
+  return map[s] || 'sig-netral';
 }
 
-function renderAnalysis(prefix, data) {
-  const a = data.analysis;
-  const p = data.price;
-
-  // Price
-  if (prefix === 'btc') {
-    $('analysisBtcPrice').textContent = fmtUsd(p.priceUsd, 0);
-  } else {
-    $('analysisGoldPrice').textContent = fmtUsd(p.pricePerOzUsd, 2) + ' /oz';
-  }
-
-  // Score ring
-  const ring = $(prefix + 'ScoreRing');
-  const circumference = 2 * Math.PI * 52; // r=52
-  const offset = circumference - (a.score / 100) * circumference;
-  ring.style.strokeDashoffset = offset;
-  ring.style.stroke = getRecColor(a.score);
-
-  // Score value
-  const scoreEl = $(prefix + 'Score');
-  scoreEl.textContent = a.score;
-  scoreEl.className = 'score-value ' + getRecClass(a.score);
-
-  // Recommendation text
-  const labelEl = $(prefix + 'RecLabel');
-  labelEl.textContent = getRecText(a.recommendation);
-  labelEl.className = 'rec-label ' + getRecClass(a.score);
-
-  $(prefix + 'RecMessage').textContent = a.message;
-
-  // Indicators
-  const listEl = $(prefix + 'Indicators');
-  listEl.innerHTML = '';
-  if (a.indicators) {
-    a.indicators.forEach(ind => {
-      const row = document.createElement('div');
-      row.className = 'indicator-row';
-      row.innerHTML = `
-        <span class="indicator-name">${ind.name}</span>
-        <span class="indicator-value">${ind.value}</span>
-        <span class="indicator-signal ${getSignalClass(ind.signal)}">${ind.signal}</span>
-      `;
-      listEl.appendChild(row);
-    });
-  }
-}
-
-// ─── Timeframe Buttons ───
-
-document.querySelectorAll('.timeframe-btns').forEach(group => {
-  const chart = group.dataset.chart;
-  group.querySelectorAll('.tf-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      group.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const days = parseInt(btn.dataset.days);
-      const asset = chart === 'btc' ? 'bitcoin' : 'gold';
-      loadChart(asset, days);
-    });
-  });
-});
-
-// ─── Auto Refresh ───
-
+// ─── Timer ───
 function startTimer() {
-  countdown = 60;
-  if (refreshInterval) clearInterval(refreshInterval);
-  refreshInterval = setInterval(() => {
+  if (timerInterval) clearInterval(timerInterval);
+  countdown = REFRESH_INTERVAL;
+  document.getElementById('updateTimer').textContent = `Update: ${countdown}s`;
+  timerInterval = setInterval(() => {
     countdown--;
-    $('updateTimer').textContent = `Update: ${countdown}s`;
+    document.getElementById('updateTimer').textContent = `Update: ${countdown}s`;
     if (countdown <= 0) {
       loadAll();
-      countdown = 60;
+      countdown = REFRESH_INTERVAL;
     }
   }, 1000);
 }
 
-// ─── Init ───
-
+// ─── Load All ───
 async function loadAll() {
-  $('updateTimer').textContent = 'Memuat...';
-  await Promise.all([
-    loadPrices(),
-    loadChart('bitcoin', 7),
-    loadChart('gold', 7),
-    loadAnalysis(),
-  ]);
-  $('updateTimer').textContent = 'Update: 60s';
+  await Promise.all([loadPrices(), renderAllCharts(), renderAnalysis()]);
 }
 
-loadAll().then(startTimer);
+// ─── Init ───
+document.addEventListener('DOMContentLoaded', () => {
+  loadAll().then(() => startTimer());
+});
