@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CryptoGold Monitor — Bitcoin & Emas</title>
+  <meta name="description" content="Monitoring harga Bitcoin & Emas real-time dengan AI Decision Making Support">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="container header-inner">
+      <div class="logo">
+        <span class="logo-icon">📊</span>
+        <span class="logo-text">CryptoGold<span class="logo-accent">Monitor</span></span>
+      </div>
+      <div class="header-right">
+        <span class="live-dot"></span>
+        <span class="live-text">Live</span>
+        <span class="update-timer" id="updateTimer">Memuat...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main">
+    <!-- Price Cards -->
+    <section class="price-cards">
+      <div class="price-card btc-card" id="btcCard">
+        <div class="card-header">
+          <div class="asset-info">
+            <span class="asset-icon">₿</span>
+            <div>
+              <h2 class="asset-name">Bitcoin</h2>
+              <span class="asset-symbol">BTC/USD</span>
+            </div>
+          </div>
+          <span class="change-badge" id="btcChange">—</span>
+        </div>
+        <div class="card-body">
+          <div class="price-main" id="btcPriceUsd">$—</div>
+          <div class="price-sub" id="btcPriceIdr">Rp —</div>
+          <div class="price-meta">
+            <span>Vol 24h: <b id="btcVolume">—</b></span>
+            <span>MCap: <b id="btcMcap">—</b></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="price-card gold-card" id="goldCard">
+        <div class="card-header">
+          <div class="asset-info">
+            <span class="asset-icon gold-icon">🥇</span>
+            <div>
+              <h2 class="asset-name">Emas (Gold)</h2>
+              <span class="asset-symbol">XAU/USD</span>
+            </div>
+          </div>
+          <span class="change-badge" id="goldChange">—</span>
+        </div>
+        <div class="card-body">
+          <div class="price-main" id="goldPriceUsd">$—</div>
+          <div class="price-sub" id="goldPriceIdr">Rp — /gram</div>
+          <div class="pegadaian-box">
+            <div class="pegadaian-label">Estimasi Pegadaian</div>
+            <div class="pegadaian-prices">
+              <span>Beli: <b id="pegBuy">Rp —</b>/gram</span>
+              <span>Jual: <b id="pegSell">Rp —</b>/gram</span>
+            </div>
+            <div class="pegadaian-note" id="pegNote"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Charts -->
+    <section class="charts-section">
+      <div class="chart-container">
+        <div class="chart-header">
+          <h3>📈 Grafik Harga Bitcoin (USD)</h3>
+          <div class="timeframe-btns" data-chart="btc">
+            <button class="tf-btn active" data-days="7">7H</button>
+            <button class="tf-btn" data-days="30">1B</button>
+            <button class="tf-btn" data-days="90">3B</button>
+            <button class="tf-btn" data-days="180">6B</button>
+            <button class="tf-btn" data-days="365">1T</button>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="btcChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-header">
+          <h3>📈 Grafik Harga Emas (USD/oz)</h3>
+          <div class="timeframe-btns" data-chart="gold">
+            <button class="tf-btn active" data-days="7">7H</button>
+            <button class="tf-btn" data-days="30">1B</button>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="goldChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI Analysis -->
+    <section class="analysis-section" id="analysisSection">
+      <h2 class="section-title">🤖 Analisis AI — Rekomendasi Beli</h2>
+      <p class="section-subtitle">Analisis teknikal otomatis berdasarkan RSI, Moving Average, MACD, Bollinger Bands, dan momentum harga.</p>
+
+      <div class="analysis-cards">
+        <!-- Bitcoin Analysis -->
+        <div class="analysis-card" id="btcAnalysis">
+          <div class="analysis-header btc-gradient">
+            <span class="analysis-asset-icon">₿</span>
+            <div>
+              <h3>Bitcoin</h3>
+              <p class="analysis-price" id="analysisBtcPrice">$—</p>
+            </div>
+          </div>
+          <div class="recommendation-box" id="btcRecommendation">
+            <div class="rec-score-ring">
+              <svg viewBox="0 0 120 120" class="score-svg">
+                <circle cx="60" cy="60" r="52" class="score-bg"/>
+                <circle cx="60" cy="60" r="52" class="score-fill" id="btcScoreRing"/>
+              </svg>
+              <div class="score-value" id="btcScore">—</div>
+            </div>
+            <div class="rec-text">
+              <div class="rec-label" id="btcRecLabel">Memuat...</div>
+              <p class="rec-message" id="btcRecMessage">Sedang menganalisis data...</p>
+            </div>
+          </div>
+          <div class="indicators-list" id="btcIndicators"></div>
+        </div>
+
+        <!-- Gold Analysis -->
+        <div class="analysis-card" id="goldAnalysis">
+          <div class="analysis-header gold-gradient">
+            <span class="analysis-asset-icon">🥇</span>
+            <div>
+              <h3>Emas (Gold)</h3>
+              <p class="analysis-price" id="analysisGoldPrice">$—</p>
+            </div>
+          </div>
+          <div class="recommendation-box" id="goldRecommendation">
+            <div class="rec-score-ring">
+              <svg viewBox="0 0 120 120" class="score-svg">
+                <circle cx="60" cy="60" r="52" class="score-bg"/>
+                <circle cx="60" cy="60" r="52" class="score-fill" id="goldScoreRing"/>
+              </svg>
+              <div class="score-value" id="goldScore">—</div>
+            </div>
+            <div class="rec-text">
+              <div class="rec-label" id="goldRecLabel">Memuat...</div>
+              <p class="rec-message" id="goldRecMessage">Sedang menganalisis data...</p>
+            </div>
+          </div>
+          <div class="indicators-list" id="goldIndicators"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Legend / Disclaimer -->
+    <section class="disclaimer">
+      <h4>Keterangan Skor</h4>
+      <div class="score-legend">
+        <span class="legend-item"><span class="legend-dot strong-buy"></span> 80–100: Strong Buy</span>
+        <span class="legend-item"><span class="legend-dot buy"></span> 65–79: Buy</span>
+        <span class="legend-item"><span class="legend-dot hold"></span> 50–64: Hold / DCA</span>
+        <span class="legend-item"><span class="legend-dot wait"></span> 35–49: Wait</span>
+        <span class="legend-item"><span class="legend-dot strong-wait"></span> 0–34: Strong Wait</span>
+      </div>
+      <p class="disclaimer-text">
+        ⚠️ <strong>Disclaimer:</strong> Analisis ini bersifat informatif dan bukan merupakan saran investasi.
+        Selalu lakukan riset mandiri (DYOR) sebelum membuat keputusan investasi. Harga estimasi Pegadaian dihitung dari harga emas global dan mungkin berbeda dengan harga aktual.
+      </p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>CryptoGold Monitor — Data dari CoinGecko & vang.today — Auto-refresh setiap 60 detik</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
