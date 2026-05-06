@@ -12,7 +12,7 @@ const fmtCompact = (n) => {
   if (n >= 1e12) return '$' + (n / 1e12).toFixed(2) + 'T';
   if (n >= 1e9) return '$' + (n / 1e9).toFixed(2) + 'B';
   if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
-  return '$' + fmt(n);
+  return fmtUsd(n);
 };
 
 // ─── State ───
@@ -101,7 +101,12 @@ function createChart(canvasId, data, color, yPrefix, yPostfix) {
       plugins: { legend: { display: false }, tooltip: {
         mode: 'index', intersect: false,
         callbacks: {
-          label: (ctx) => (yPrefix || '') + fmt(ctx.raw, 2) + (yPostfix || ''),
+          label: (ctx) => {
+            const v = ctx.raw;
+            if (yPrefix === '$') return fmtUsd(v);
+            if (yPrefix === 'Rp ') return fmtIdr(v);
+            return (yPrefix || '') + fmt(v, 2) + (yPostfix || '');
+          },
         },
       }},
       scales: {
