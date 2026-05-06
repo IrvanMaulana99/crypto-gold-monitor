@@ -271,6 +271,7 @@ function recLabelText(rec) {
     HOLD: 'HOLD / DCA',
     WAIT: 'TUNGGU',
     STRONG_WAIT: 'JANGAN BELI',
+    INSUFFICIENT_DATA: 'DATA KURANG',
   };
   return map[rec] || rec;
 }
