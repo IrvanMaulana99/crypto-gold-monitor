@@ -32,7 +32,8 @@
   <main class="container main">
     <!-- Price Cards -->
     <section class="price-cards">
-      <div class="price-card btc-card" id="btcCard">
+      <!-- Bitcoin -->
+      <div class="price-card btc-card">
         <div class="card-header">
           <div class="asset-info">
             <span class="asset-icon">₿</span>
@@ -53,12 +54,13 @@
         </div>
       </div>
 
-      <div class="price-card gold-card" id="goldCard">
+      <!-- Emas Global -->
+      <div class="price-card gold-card">
         <div class="card-header">
           <div class="asset-info">
-            <span class="asset-icon gold-icon">🥇</span>
+            <span class="asset-icon gold-icon">🌍</span>
             <div>
-              <h2 class="asset-name">Emas (Gold)</h2>
+              <h2 class="asset-name">Emas Global</h2>
               <span class="asset-symbol">XAU/USD</span>
             </div>
           </div>
@@ -67,14 +69,38 @@
         <div class="card-body">
           <div class="price-main" id="goldPriceUsd">$—</div>
           <div class="price-sub" id="goldPriceIdr">Rp — /gram</div>
-          <div class="pegadaian-box">
-            <div class="pegadaian-label">Estimasi Pegadaian</div>
-            <div class="pegadaian-prices">
-              <span>Beli: <b id="pegBuy">Rp —</b>/gram</span>
-              <span>Jual: <b id="pegSell">Rp —</b>/gram</span>
+        </div>
+      </div>
+
+      <!-- Emas Pegadaian -->
+      <div class="price-card peg-card">
+        <div class="card-header">
+          <div class="asset-info">
+            <span class="asset-icon peg-icon">🏦</span>
+            <div>
+              <h2 class="asset-name">Emas Pegadaian</h2>
+              <span class="asset-symbol">Tabungan Emas</span>
             </div>
-            <div class="pegadaian-note" id="pegNote"></div>
           </div>
+          <span class="change-badge" id="pegChange">—</span>
+        </div>
+        <div class="card-body">
+          <div class="pegadaian-prices-main">
+            <div class="peg-price-row">
+              <span class="peg-label">Beli</span>
+              <span class="price-main peg-buy" id="pegBuy">Rp —</span>
+              <span class="peg-unit">/gram</span>
+            </div>
+            <div class="peg-price-row">
+              <span class="peg-label sell-label">Jual</span>
+              <span class="price-main peg-sell" id="pegSell">Rp —</span>
+              <span class="peg-unit">/gram</span>
+            </div>
+          </div>
+          <div class="price-meta">
+            <span>Per 0.01gr: Beli <b id="pegBuy001">—</b> / Jual <b id="pegSell001">—</b></span>
+          </div>
+          <div class="peg-source">Sumber: sahabat.pegadaian.co.id</div>
         </div>
       </div>
     </section>
@@ -92,40 +118,50 @@
             <button class="tf-btn" data-days="365">1T</button>
           </div>
         </div>
-        <div class="chart-wrapper">
-          <canvas id="btcChart"></canvas>
-        </div>
+        <div class="chart-wrapper"><canvas id="btcChart"></canvas></div>
       </div>
       <div class="chart-container">
         <div class="chart-header">
-          <h3>📈 Grafik Harga Emas (USD/oz)</h3>
+          <h3>📈 Grafik Emas Global (USD/oz)</h3>
           <div class="timeframe-btns" data-chart="gold">
             <button class="tf-btn active" data-days="7">7H</button>
             <button class="tf-btn" data-days="30">1B</button>
           </div>
         </div>
-        <div class="chart-wrapper">
-          <canvas id="goldChart"></canvas>
+        <div class="chart-wrapper"><canvas id="goldChart"></canvas></div>
+      </div>
+      <div class="chart-container chart-full">
+        <div class="chart-header">
+          <h3>📈 Grafik Emas Pegadaian (Rp/gram)</h3>
+          <div class="timeframe-btns" data-chart="peg">
+            <button class="tf-btn active" data-days="7">7H</button>
+            <button class="tf-btn" data-days="30">1B</button>
+            <button class="tf-btn" data-days="90">3B</button>
+            <button class="tf-btn" data-days="180">6B</button>
+            <button class="tf-btn" data-days="365">1T</button>
+          </div>
         </div>
+        <div class="chart-wrapper"><canvas id="pegChart"></canvas></div>
       </div>
     </section>
 
     <!-- AI Analysis -->
     <section class="analysis-section" id="analysisSection">
       <h2 class="section-title">🤖 Analisis AI — Rekomendasi Beli</h2>
-      <p class="section-subtitle">Analisis teknikal otomatis berdasarkan RSI, Moving Average, MACD, Bollinger Bands, dan momentum harga.</p>
+      <p class="section-subtitle">Analisis teknikal otomatis berdasarkan 9 indikator: RSI, Stochastic RSI, Moving Average, MACD, Bollinger Bands, Momentum, Williams %R, Volatilitas, dan Support/Resistance.</p>
 
       <div class="analysis-cards">
         <!-- Bitcoin Analysis -->
-        <div class="analysis-card" id="btcAnalysis">
+        <div class="analysis-card">
           <div class="analysis-header btc-gradient">
             <span class="analysis-asset-icon">₿</span>
             <div>
               <h3>Bitcoin</h3>
               <p class="analysis-price" id="analysisBtcPrice">$—</p>
+              <p class="analysis-trend" id="analysisBtcTrend"></p>
             </div>
           </div>
-          <div class="recommendation-box" id="btcRecommendation">
+          <div class="recommendation-box">
             <div class="rec-score-ring">
               <svg viewBox="0 0 120 120" class="score-svg">
                 <circle cx="60" cy="60" r="52" class="score-bg"/>
@@ -141,16 +177,17 @@
           <div class="indicators-list" id="btcIndicators"></div>
         </div>
 
-        <!-- Gold Analysis -->
-        <div class="analysis-card" id="goldAnalysis">
+        <!-- Gold Global Analysis -->
+        <div class="analysis-card">
           <div class="analysis-header gold-gradient">
-            <span class="analysis-asset-icon">🥇</span>
+            <span class="analysis-asset-icon">🌍</span>
             <div>
-              <h3>Emas (Gold)</h3>
+              <h3>Emas Global</h3>
               <p class="analysis-price" id="analysisGoldPrice">$—</p>
+              <p class="analysis-trend" id="analysisGoldTrend"></p>
             </div>
           </div>
-          <div class="recommendation-box" id="goldRecommendation">
+          <div class="recommendation-box">
             <div class="rec-score-ring">
               <svg viewBox="0 0 120 120" class="score-svg">
                 <circle cx="60" cy="60" r="52" class="score-bg"/>
@@ -164,6 +201,32 @@
             </div>
           </div>
           <div class="indicators-list" id="goldIndicators"></div>
+        </div>
+
+        <!-- Pegadaian Analysis -->
+        <div class="analysis-card">
+          <div class="analysis-header peg-gradient">
+            <span class="analysis-asset-icon">🏦</span>
+            <div>
+              <h3>Emas Pegadaian</h3>
+              <p class="analysis-price" id="analysisPegPrice">Rp —</p>
+              <p class="analysis-trend" id="analysisPegTrend"></p>
+            </div>
+          </div>
+          <div class="recommendation-box">
+            <div class="rec-score-ring">
+              <svg viewBox="0 0 120 120" class="score-svg">
+                <circle cx="60" cy="60" r="52" class="score-bg"/>
+                <circle cx="60" cy="60" r="52" class="score-fill" id="pegScoreRing"/>
+              </svg>
+              <div class="score-value" id="pegScore">—</div>
+            </div>
+            <div class="rec-text">
+              <div class="rec-label" id="pegRecLabel">Memuat...</div>
+              <p class="rec-message" id="pegRecMessage">Sedang menganalisis data...</p>
+            </div>
+          </div>
+          <div class="indicators-list" id="pegIndicators"></div>
         </div>
       </div>
     </section>
@@ -180,14 +243,15 @@
       </div>
       <p class="disclaimer-text">
         ⚠️ <strong>Disclaimer:</strong> Analisis ini bersifat informatif dan bukan merupakan saran investasi.
-        Selalu lakukan riset mandiri (DYOR) sebelum membuat keputusan investasi. Harga estimasi Pegadaian dihitung dari harga emas global dan mungkin berbeda dengan harga aktual.
+        Selalu lakukan riset mandiri (DYOR) sebelum membuat keputusan investasi.
+        Harga Pegadaian diambil langsung dari API Pegadaian (sahabat.pegadaian.co.id).
       </p>
     </section>
   </main>
 
   <footer class="footer">
     <div class="container">
-      <p>CryptoGold Monitor — Data dari CoinGecko & vang.today — Auto-refresh setiap 60 detik</p>
+      <p>CryptoGold Monitor — Data: CoinGecko, vang.today, Pegadaian — Auto-refresh 30 detik</p>
     </div>
   </footer>
 
